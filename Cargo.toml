@@ -9,7 +9,7 @@ documentation = "https://docs.rs/nats-types"
 repository = "https://github.com/encabulators/nats-types"
 readme = "README.md"
 keywords = ["nats", "protocol", "types"]
-categories = ["api-bindings", "algorithms", "Data structures", "Encoding"]
+categories = ["api-bindings", "algorithms", "data-structures", "encoding"]
 
 include = [
     "Cargo.toml",
