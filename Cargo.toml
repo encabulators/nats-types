@@ -1,7 +1,7 @@
 [package]
 name = "nats-types"
 version = "0.1.0"
-authors = ["Kevin Hoffman <kevin.hoffman@capitalone.com>"]
+authors = ["Kevin Hoffman <alothien@gmail.com>"]
 description = "Enumerations and types for representing NATS protocol messages"
 license = "MPL-2.0"
 homepage = "https://github.com/encabulators/nats-types"
