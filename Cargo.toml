@@ -17,6 +17,9 @@ include = [
     "src/**/*",
 ]
 
+[badges]
+travis-ci = { repository = "encabulators/nats-types", branch = "master" }
+
 [dependencies]
 nom = "^4.1.1"
 serde_json = "1.0"
