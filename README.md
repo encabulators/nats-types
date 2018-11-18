@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/encabulators/nats-types.svg?branch=master)](https://travis-ci.org/encabulators/nats-types)
+
+
 # nats-types
 
  The `nats-types` crate contains an enum `ProtocolMessage`. This enum can be used to
@@ -13,11 +16,10 @@
 
  use nats_types::{PublishMessage, ProtocolMessage};
 
- let publish = ProtocolMessage::Publish( PublishMessage {
-     reply_to: Some("INBOX.42".to_string()),
-     subject: "workdispatch".to_string(),
-     payload_size: 11,
-     payload: b"Hello World".to_vec(),
+ let publish = ProtocolMessage::Publish( PublishMessage::new(
+     Some("INBOX.42".to_string()),
+     "workdispatch".to_string(),     
+     b"Hello World".to_vec(),
  });
 
  let out = format!("{}", publish);
