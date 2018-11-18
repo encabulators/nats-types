@@ -1,6 +1,6 @@
 [package]
 name = "nats-types"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Kevin Hoffman <alothien@gmail.com>"]
 description = "Enumerations and types for representing NATS protocol messages"
 license = "MPL-2.0"
@@ -17,9 +17,8 @@ include = [
     "src/**/*",
 ]
 
-
 [dependencies]
-nom = "^4.0"
+nom = "^4.1.1"
 serde_json = "1.0"
 serde_derive = "1.0"
 serde = "1.0"

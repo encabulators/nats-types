@@ -48,7 +48,6 @@ extern crate serde_json;
 #[macro_use]
 extern crate nom;
 
-use nom::types::CompleteStr;
 use nom::AsBytes;
 use std::error::Error;
 use std::fmt;
@@ -63,6 +62,7 @@ pub enum ProtocolMessage {
     Unsubscribe(UnsubscribeMessage),
     Publish(PublishMessage),
     Message(DeliveredMessage),
+    Subscribe(SubscribeMessage),
     Ping,
     Pong,
     Ok,
@@ -75,6 +75,7 @@ impl Display for ProtocolMessage {
     fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
         match self {
             ProtocolMessage::Unsubscribe(m) => write!(f, "{}", m),
+            ProtocolMessage::Subscribe(m) => write!(f, "{}", m),
             ProtocolMessage::Publish(m) => write!(f, "{}", m),
             ProtocolMessage::Message(m) => write!(f, "{}", m),
             ProtocolMessage::Ping => write!(f, "PING"),
@@ -91,20 +92,24 @@ impl FromStr for ProtocolMessage {
     type Err = NatsParseError;
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
-
         if s.starts_with("UNSUB") {
             match UnsubscribeMessage::from_str(s) {
                 Ok(m) => Ok(ProtocolMessage::Unsubscribe(m)),
                 Err(e) => Err(e),
             }
         } else if s.starts_with("PUB") {
-           match PublishMessage::from_str(s) {
-               Ok(m) => Ok(ProtocolMessage::Publish(m)),
-               Err(e) => Err(e),
-           }
+            match PublishMessage::from_str(s) {
+                Ok(m) => Ok(ProtocolMessage::Publish(m)),
+                Err(e) => Err(e),
+            }
         } else if s.starts_with("MSG") {
             match DeliveredMessage::from_str(s) {
                 Ok(m) => Ok(ProtocolMessage::Message(m)),
+                Err(e) => Err(e),
+            }
+        } else if s.starts_with("SUB") {
+            match SubscribeMessage::from_str(s) {
+                Ok(m) => Ok(ProtocolMessage::Subscribe(m)),
                 Err(e) => Err(e),
             }
         } else if s.starts_with("PING") {
@@ -116,7 +121,9 @@ impl FromStr for ProtocolMessage {
         } else if s.starts_with("-ERR") {
             match parser::parse_err_header(s) {
                 Some(h) => Ok(ProtocolMessage::Error(h.message)),
-                None => Err(NatsParseError{msg: "Failed to parse protocol message of type ERR".to_string()}),
+                None => Err(NatsParseError {
+                    msg: "Failed to parse protocol message of type ERR".to_string(),
+                }),
             }
         } else if s.starts_with("INFO") {
             match ServerInformation::from_str(s) {
@@ -128,9 +135,10 @@ impl FromStr for ProtocolMessage {
                 Ok(m) => Ok(ProtocolMessage::Connect(m)),
                 Err(e) => Err(e),
             }
-        }
-        else {
-            Err(NatsParseError{msg: "Failed to parse protocol message - unknown message type?".to_string()})
+        } else {
+            Err(NatsParseError {
+                msg: "Failed to parse protocol message - unknown message type?".to_string(),
+            })
         }
     }
 }
@@ -156,6 +164,35 @@ pub struct ConnectionInformation {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protocol: Option<u64>,
+}
+
+impl ConnectionInformation {
+    /// Constructor to create a new connection information struct
+    pub fn new(
+        verbose: bool,
+        pedantic: bool,
+        tls_required: bool,
+        auth_token: Option<String>,
+        user: Option<String>,
+        pass: Option<String>,
+        lang: String,
+        name: String,
+        version: String,
+        protocol: Option<u64>,
+    ) -> ConnectionInformation {
+        ConnectionInformation {
+            verbose,
+            pedantic,
+            tls_required,
+            auth_token,
+            user,
+            pass,
+            lang,
+            name,
+            version,
+            protocol,
+        }
+    }
 }
 
 impl Display for ConnectionInformation {
@@ -201,6 +238,31 @@ pub struct ServerInformation {
     pub connect_urls: Option<Vec<String>>,
 }
 
+impl ServerInformation {
+    /// Constructor to create a new server information
+    pub fn new(
+        server_id: String,
+        version: String,
+        go: String,
+        host: String,
+        port: u64,
+        tls_required: bool,
+        max_payload: u64,
+        connect_urls: Option<Vec<String>>,
+    ) -> ServerInformation {
+        ServerInformation {
+            server_id,
+            version,
+            go,
+            host,
+            port,
+            tls_required,
+            max_payload,
+            connect_urls,
+        }
+    }
+}
+
 impl Display for ServerInformation {
     fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
         let out = serde_json::to_string(self);
@@ -236,6 +298,24 @@ pub struct DeliveredMessage {
     pub reply_to: Option<String>,
     pub payload_size: u64,
     pub payload: Vec<u8>,
+}
+
+impl DeliveredMessage {
+    /// Constructor to build a new message from a given subject, payload, etc
+    pub fn new(
+        subject: String,
+        subscription_id: u64,
+        reply_to: Option<String>,
+        payload: Vec<u8>,
+    ) -> DeliveredMessage {
+        DeliveredMessage {
+            subject,
+            subscription_id,
+            reply_to,
+            payload_size: payload.len() as u64,
+            payload,
+        }
+    }
 }
 
 impl Display for DeliveredMessage {
@@ -290,6 +370,60 @@ impl FromStr for DeliveredMessage {
     }
 }
 
+/// A struct that represents a subscription message. This message conforms
+/// to the following format from the NATS protocol definition:
+/// ```text
+/// SUB <subject> [queue group] <sid>\r\n
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub struct SubscribeMessage {
+    pub subject: String,
+    pub queue_group: Option<String>,
+    pub subscription_id: u64,
+}
+
+impl SubscribeMessage {
+    /// Constructor to create a new subscription message
+    pub fn new(
+        subject: String,
+        queue_group: Option<String>,
+        subscription_id: u64,
+    ) -> SubscribeMessage {
+        SubscribeMessage {
+            subject,
+            queue_group,
+            subscription_id,
+        }
+    }
+}
+
+impl Display for SubscribeMessage {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
+        match self.queue_group {
+            None => write!(f, "SUB {} {}\r\n", self.subject, self.subscription_id),
+            Some(ref q) => write!(f, "SUB {} {} {}\r\n", self.subject, q, self.subscription_id),
+        }
+    }
+}
+
+impl FromStr for SubscribeMessage {
+    type Err = NatsParseError;
+
+    fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
+        let res = parser::parse_sub_header(s);
+        match res {
+            Some(r) => Ok(SubscribeMessage {
+                subscription_id: r.sid,
+                queue_group: r.queue_group,
+                subject: r.subject,
+            }),
+            None => Err(NatsParseError {
+                msg: "Failed to parse Subscribe message".to_string(),
+            }),
+        }
+    }
+}
+
 /// A struct that represents an unsubscribe message. This message conforms
 /// to the following format from the NATS protocol definition:
 /// ```text
@@ -299,6 +433,16 @@ impl FromStr for DeliveredMessage {
 pub struct UnsubscribeMessage {
     pub subscription_id: u64,
     pub max_messages: Option<u64>,
+}
+
+impl UnsubscribeMessage {
+    /// Constructor to create a new unsub message
+    pub fn new(subscription_id: u64, max_messages: Option<u64>) -> UnsubscribeMessage {
+        UnsubscribeMessage {
+            subscription_id,
+            max_messages,
+        }
+    }
 }
 
 impl Display for UnsubscribeMessage {
@@ -338,6 +482,18 @@ pub struct PublishMessage {
     pub reply_to: Option<String>,
     pub payload_size: u64,
     pub payload: Vec<u8>,
+}
+
+impl PublishMessage {
+    /// Constructor to create a new publish message
+    pub fn new(subject: String, reply_to: Option<String>, payload: Vec<u8>) -> PublishMessage {
+        PublishMessage {
+            subject,
+            reply_to,
+            payload_size: payload.len() as u64,
+            payload,
+        }
+    }
 }
 
 impl Display for PublishMessage {
@@ -421,10 +577,32 @@ mod parser;
 #[cfg(test)]
 mod tests {
     use super::{
-        ConnectionInformation, DeliveredMessage, PublishMessage, ServerInformation,
-        UnsubscribeMessage, ProtocolMessage,
+        ConnectionInformation, DeliveredMessage, ProtocolMessage, PublishMessage,
+        ServerInformation, SubscribeMessage, UnsubscribeMessage,
     };
     use std::str::FromStr;
+
+    #[test]
+    fn sub_roundtrip() {
+        let msg = "SUB FOO group.test 99\r\n";
+        let sub = SubscribeMessage::from_str(msg).unwrap();
+        assert_eq!(sub.subject, "FOO");
+        assert_eq!(sub.subscription_id, 99);
+        assert_eq!(sub.queue_group, Some("group.test".to_string()));
+        let out = format!("{}", sub);
+        assert_eq!(out, msg);
+    }
+
+    #[test]
+    fn sub_roundtrip_irreg_whitespace() {
+        let msg = "SUB   \t  FOO   \t group.test   \t 99\r\n";
+        let sub = SubscribeMessage::from_str(msg).unwrap();
+        assert_eq!(sub.subject, "FOO");
+        assert_eq!(sub.subscription_id, 99);
+        assert_eq!(sub.queue_group, Some("group.test".to_string()));
+        let out = format!("{}", sub);
+        assert_eq!(out, "SUB FOO group.test 99\r\n");
+    }
 
     #[test]
     fn unsub_roundtrip() {
@@ -449,6 +627,18 @@ mod tests {
     }
 
     #[test]
+    fn pub_roundtrip_irreg_whitespace() {
+        let msg = "PUB     FOO  \t\t   11\r\nHello NATS!\r\n";
+        let pubm = PublishMessage::from_str(msg).unwrap();
+        assert_eq!(pubm.payload_size, 11);
+        assert_eq!(pubm.subject, "FOO");
+        assert_eq!(pubm.reply_to, None);
+        assert_eq!(pubm.payload, b"Hello NATS!");
+        let out = format!("{}", pubm);
+        assert_eq!(out, "PUB FOO 11\r\nHello NATS!\r\n");
+    }
+
+    #[test]
     fn msg_roundtrip() {
         let msg = "MSG FOO.BAR 9 INBOX.34 11\r\nHello World\r\n";
         let mmsg = DeliveredMessage::from_str(msg).unwrap();
@@ -459,6 +649,19 @@ mod tests {
         assert_eq!(mmsg.payload, b"Hello World");
         let out = format!("{}", mmsg);
         assert_eq!(out, msg);
+    }
+
+    #[test]
+    fn msg_roundtrip_irreg_whitespace() {
+        let msg = "MSG \t  \t  FOO.BAR   \t 9   \t  INBOX.34 11\r\nHello World\r\n";
+        let mmsg = DeliveredMessage::from_str(msg).unwrap();
+        assert_eq!(mmsg.reply_to, Some("INBOX.34".to_string()));
+        assert_eq!(mmsg.payload_size, 11);
+        assert_eq!(mmsg.subscription_id, 9);
+        assert_eq!(mmsg.subject, "FOO.BAR");
+        assert_eq!(mmsg.payload, b"Hello World");
+        let out = format!("{}", mmsg);
+        assert_eq!(out, "MSG FOO.BAR 9 INBOX.34 11\r\nHello World\r\n");
     }
 
     #[test]

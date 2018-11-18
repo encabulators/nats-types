@@ -3,11 +3,8 @@
 // and parser combinators. I would not have been able to write any of the code in this file
 // without their assistance.
 
-
-use nom;
 use nom::types::CompleteStr;
-use nom::{digit, AsChar};
-use std;
+
 
 // MSG <subject> <sid> [reply-to] <#bytes>\r\n[payload]\r\n
 #[derive(Debug)]
@@ -91,15 +88,17 @@ named!(parse_alpha<CompleteStr, String>, map!(
     |r|r.to_string()
 ));
 
+named!(spec_whitespace, eat_separator!(&b" \t"[..]));
+
 named!(msg_header<::nom::types::CompleteStr, MessageHeader>,
     do_parse!(
         tag_s!("MSG")                           >>
-        char!(' ')                              >>
-        subject: parse_completestr   >>
-        char!(' ')   >>
-        sid:  parse_u64                         >>
-        char!(' ')                              >>
-        reply_to: opt!(terminated!(parse_completestr, char!(' '))) >>
+        is_a!(" \t")                            >>
+        subject: parse_completestr              >>                
+        is_a!(" \t")                            >>
+        sid:  parse_u64                         >>                
+        is_a!(" \t")                            >>
+        reply_to: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
         message_len: parse_u64                  >>
 
         ( MessageHeader { sid, subject, reply_to, message_len } )
@@ -111,12 +110,12 @@ pub fn parse_msg_header(header: &str) -> Option<MessageHeader> {
 
 named!(pub_header<CompleteStr, PubHeader>,
     do_parse!(
-        tag_s!("PUB") >>
-        char!(' ') >>
-        subject: parse_completestr >>
-        char!(' ') >>
-        reply_to: opt!(terminated!(parse_completestr, char!(' '))) >>
-        message_len: parse_u64 >>
+        tag_s!("PUB")                               >>
+        is_a!(" \t")                                >>
+        subject: parse_completestr                  >>
+        is_a!(" \t")                                >>
+        reply_to: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
+        message_len: parse_u64                      >>
 
         ( PubHeader { subject, reply_to, message_len } )
     )
@@ -127,24 +126,28 @@ pub fn parse_pub_header(header: &str) -> Option<PubHeader> {
 
 named!(sub_header<CompleteStr, SubHeader>,
     do_parse!(
-        tag_s!("SUB") >>
-        char!(' ') >>
-        subject: parse_completestr >>
-        char!(' ') >>
-        queue_group: opt!(terminated!(parse_completestr, char!(' '))) >>
-        sid: parse_u64 >>
+        tag_s!("SUB")                                   >>
+        is_a!(" \t")                                    >>
+        subject: parse_completestr                      >>
+        is_a!(" \t")                                    >>
+        queue_group: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
+        sid: parse_u64                                  >>
 
         ( SubHeader { subject, queue_group, sid } )
     )
 );
 
+pub fn parse_sub_header(header: &str) -> Option<SubHeader> {
+    sub_header(CompleteStr(header)).ok().map(|h| h.1)
+}
+
 named!(unsub_header<CompleteStr, UnsubHeader>,
     do_parse!(
-        tag_s!("UNSUB") >>
-        char!(' ') >>
-        sid: parse_u64 >>
-        opt!(char!(' ')) >>
-        max_messages: opt!(parse_u64) >>
+        tag_s!("UNSUB")                 >>
+        is_a!(" \t")                    >>
+        sid: parse_u64                  >>
+        opt!(is_a!(" \t"))              >>
+        max_messages: opt!(parse_u64)   >>
 
         ( UnsubHeader { sid, max_messages })
     )
@@ -185,6 +188,21 @@ mod test {
             assert_eq!(String::from_utf8(payload).unwrap(), "Hello World");
             let res = msg_header(CompleteStr(&hdr));
             println!("{:?}", res);
+            assert!(res.is_ok());
+        }
+    }
+
+    #[test]
+    fn msg_irreg_whitespace() {
+        let raw = "MSG  \t  workdispatch 1 reply.topic 11\r\nHello World\r\n";
+        let split = split_header_and_payload(raw);
+        assert!(split.is_some());
+        if let Some(split) = split {
+            let hdr = split.0;
+            let payload = split.1;
+
+            assert_eq!(String::from_utf8(payload).unwrap(), "Hello World");
+            let res = msg_header(CompleteStr(&hdr));
             assert!(res.is_ok());
         }
     }
