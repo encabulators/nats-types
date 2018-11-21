@@ -148,7 +148,7 @@ impl FromStr for ProtocolMessage {
 /// ```text
 /// CONNECT [json]
 /// ```
-#[derive(Serialize, Debug, Clone, PartialEq, Deserialize)]
+#[derive(Serialize, Default, Debug, Clone, PartialEq, Deserialize)]
 pub struct ConnectionInformation {
     pub verbose: bool,
     pub pedantic: bool,
@@ -210,7 +210,6 @@ impl FromStr for ConnectionInformation {
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
         let s = s.replace("CONNECT ", "");
-        println!("{}", s);
         match serde_json::from_str(s.trim()) {
             Ok(ci) => Ok(ci),
             Err(e) => Err(NatsParseError {
@@ -225,7 +224,7 @@ impl FromStr for ConnectionInformation {
 /// ```text
 /// INFO {["option_name":option_value],...}
 /// ```
-#[derive(Serialize, Debug, Clone, PartialEq, Deserialize)]
+#[derive(Serialize, Default, Debug, Clone, PartialEq, Deserialize)]
 pub struct ServerInformation {
     pub server_id: String,
     pub version: String,
@@ -291,7 +290,7 @@ impl FromStr for ServerInformation {
 /// ```text
 /// MSG <subject> <sid> [reply-to] <#bytes>\r\n[payload]\r\n
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct DeliveredMessage {
     pub subject: String,
     pub subscription_id: u64,
@@ -375,7 +374,7 @@ impl FromStr for DeliveredMessage {
 /// ```text
 /// SUB <subject> [queue group] <sid>\r\n
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct SubscribeMessage {
     pub subject: String,
     pub queue_group: Option<String>,
@@ -429,7 +428,7 @@ impl FromStr for SubscribeMessage {
 /// ```text
 /// UNSUB <sid> [max_msgs]
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct UnsubscribeMessage {
     pub subscription_id: u64,
     pub max_messages: Option<u64>,
@@ -476,7 +475,7 @@ impl FromStr for UnsubscribeMessage {
 /// ```text
 /// PUB <subject> [reply-to] <#bytes>\r\n[payload]\r\n
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PublishMessage {
     pub subject: String,
     pub reply_to: Option<String>,
