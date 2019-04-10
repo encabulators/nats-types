@@ -1,6 +1,6 @@
 [package]
 name = "nats-types"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Kevin Hoffman <alothien@gmail.com>"]
 description = "Enumerations and types for representing NATS protocol messages"
 license = "MPL-2.0"
@@ -10,6 +10,7 @@ repository = "https://github.com/encabulators/nats-types"
 readme = "README.md"
 keywords = ["nats", "protocol", "types"]
 categories = ["api-bindings", "algorithms", "data-structures", "encoding"]
+edition = "2018"
 
 include = [
     "Cargo.toml",

@@ -5,7 +5,7 @@
 
  The `nats-types` crate contains an enum `ProtocolMessage`. This enum can be used to
  parse the string output from a NATS server as well as produce strings to be sent to
- a NATS server.
+ a NATS server. This enum is up to date with NATS 2.0 protocol messages.
 
  The primary use for this crate is to be used in support of building a NATS client, though
  other potential uses might be possible.

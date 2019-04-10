@@ -164,6 +164,10 @@ pub struct ConnectionInformation {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protocol: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sig: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jwt: Option<String>,
 }
 
 impl ConnectionInformation {
@@ -179,6 +183,8 @@ impl ConnectionInformation {
         name: String,
         version: String,
         protocol: Option<u64>,
+        sig: Option<String>,
+        jwt: Option<String>,
     ) -> ConnectionInformation {
         ConnectionInformation {
             verbose,
@@ -191,6 +197,8 @@ impl ConnectionInformation {
             name,
             version,
             protocol,
+            sig,
+            jwt,
         }
     }
 }
@@ -236,6 +244,8 @@ pub struct ServerInformation {
     pub max_payload: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connect_urls: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
 }
 
 impl ServerInformation {
@@ -249,6 +259,7 @@ impl ServerInformation {
         tls_required: bool,
         max_payload: u64,
         connect_urls: Option<Vec<String>>,
+        nonce: Option<String>,
     ) -> ServerInformation {
         ServerInformation {
             server_id,
@@ -259,6 +270,7 @@ impl ServerInformation {
             tls_required,
             max_payload,
             connect_urls,
+            nonce,
         }
     }
 }
