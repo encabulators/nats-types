@@ -713,8 +713,7 @@ mod tests {
 
     #[test]
     fn connect_roundtrip() {
-        let msg = r#"CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"go","name":"testing","version":"1.2.2","protocol":1}
-        "#;
+        let msg = r#"CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"go","name":"testing","version":"1.2.2","protocol":1}"#;
         let ci = ConnectionInformation::from_str(msg);
         println!("{:?}", ci);
         assert!(ci.is_ok());
@@ -724,7 +723,7 @@ mod tests {
             assert_eq!(info.tls_required, false);
 
             let out = format!("{}", info);
-            assert_eq!(out, msg.trim());
+            assert_eq!(out, format!("{}\r\n", msg));
         }
     }
 
