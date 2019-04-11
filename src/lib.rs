@@ -78,9 +78,9 @@ impl Display for ProtocolMessage {
             ProtocolMessage::Subscribe(m) => write!(f, "{}", m),
             ProtocolMessage::Publish(m) => write!(f, "{}", m),
             ProtocolMessage::Message(m) => write!(f, "{}", m),
-            ProtocolMessage::Ping => write!(f, "PING"),
-            ProtocolMessage::Pong => write!(f, "PONG"),
-            ProtocolMessage::Ok => write!(f, "+OK"),
+            ProtocolMessage::Ping => write!(f, "PING\r\n"),
+            ProtocolMessage::Pong => write!(f, "PONG\r\n"),
+            ProtocolMessage::Ok => write!(f, "+OK\r\n"),
             ProtocolMessage::Error(s) => write!(f, "-ERR '{}'", s),
             ProtocolMessage::Info(si) => write!(f, "{}", si),
             ProtocolMessage::Connect(ci) => write!(f, "{}", ci),
@@ -207,7 +207,7 @@ impl Display for ConnectionInformation {
     fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
         let out = serde_json::to_string(self);
         match out {
-            Ok(json) => write!(f, "CONNECT {}", json),
+            Ok(json) => write!(f, "CONNECT {}\r\n", json),
             Err(e) => write!(f, "<<BAD CONNECT INFO - CAN'T SERIALIZE>>: {}", e),
         }
     }
@@ -237,11 +237,19 @@ impl FromStr for ConnectionInformation {
 pub struct ServerInformation {
     pub server_id: String,
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proto: Option<usize>,
     pub go: String,
     pub host: String,
     pub port: u64,
+    #[serde(default)]
+    pub auth_required: bool,
+    #[serde(default)]
     pub tls_required: bool,
+    #[serde(default)]
     pub max_payload: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connect_urls: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -253,22 +261,28 @@ impl ServerInformation {
     pub fn new(
         server_id: String,
         version: String,
+        proto: Option<usize>,
         go: String,
         host: String,
         port: u64,
+        auth_required: bool,
         tls_required: bool,
         max_payload: u64,
+        client_id: Option<usize>,
         connect_urls: Option<Vec<String>>,
         nonce: Option<String>,
     ) -> ServerInformation {
         ServerInformation {
             server_id,
             version,
+            proto,
             go,
             host,
             port,
+            auth_required,
             tls_required,
             max_payload,
+            client_id,
             connect_urls,
             nonce,
         }
@@ -279,7 +293,7 @@ impl Display for ServerInformation {
     fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
         let out = serde_json::to_string(self);
         match out {
-            Ok(json) => write!(f, "INFO {}", json),
+            Ok(json) => write!(f, "INFO {}\r\n", json),
             Err(e) => write!(f, "<<BAD SERVERINFO - CAN'T SERIALIZE>>: {}", e),
         }
     }
