@@ -10,9 +10,9 @@ use nom::types::CompleteStr;
 #[derive(Debug)]
 pub struct MessageHeader {
     pub subject: String,
-    pub sid: u64,
+    pub sid: usize,
     pub reply_to: Option<String>,
-    pub message_len: u64,
+    pub message_len: usize,
 }
 
 // PUB <subject> [reply-to] <#bytes>\r\n[payload]\r\n
@@ -20,7 +20,7 @@ pub struct MessageHeader {
 pub struct PubHeader {
     pub subject: String,
     pub reply_to: Option<String>,
-    pub message_len: u64,
+    pub message_len: usize,
 }
 
 // SUB <subject> [queue group] <sid>\r\n
@@ -28,7 +28,7 @@ pub struct PubHeader {
 pub struct SubHeader {
     pub subject: String,
     pub queue_group: Option<String>,
-    pub sid: u64,
+    pub sid: usize,
 }
 
 // UNSUB <sid> [max_msgs]
@@ -101,7 +101,7 @@ named!(msg_header<::nom::types::CompleteStr, MessageHeader>,
         reply_to: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
         message_len: parse_u64                  >>
 
-        ( MessageHeader { sid, subject, reply_to, message_len } )
+        ( MessageHeader { sid: sid as usize, subject, reply_to, message_len: message_len as usize } )
     )
 );
 pub fn parse_msg_header(header: &str) -> Option<MessageHeader> {
@@ -117,7 +117,7 @@ named!(pub_header<CompleteStr, PubHeader>,
         reply_to: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
         message_len: parse_u64                      >>
 
-        ( PubHeader { subject, reply_to, message_len } )
+        ( PubHeader { subject, reply_to, message_len: message_len as usize } )
     )
 );
 pub fn parse_pub_header(header: &str) -> Option<PubHeader> {
@@ -133,7 +133,7 @@ named!(sub_header<CompleteStr, SubHeader>,
         queue_group: opt!(terminated!(parse_completestr, is_a!(" \t"))) >>
         sid: parse_u64                                  >>
 
-        ( SubHeader { subject, queue_group, sid } )
+        ( SubHeader { subject, queue_group, sid: sid as usize } )
     )
 );
 

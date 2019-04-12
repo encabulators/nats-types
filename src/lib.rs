@@ -320,9 +320,9 @@ impl FromStr for ServerInformation {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeliveredMessage {
     pub subject: String,
-    pub subscription_id: u64,
+    pub subscription_id: usize,
     pub reply_to: Option<String>,
-    pub payload_size: u64,
+    pub payload_size: usize,
     pub payload: Vec<u8>,
 }
 
@@ -330,7 +330,7 @@ impl DeliveredMessage {
     /// Constructor to build a new message from a given subject, payload, etc
     pub fn new(
         subject: String,
-        subscription_id: u64,
+        subscription_id: usize,
         reply_to: Option<String>,
         payload: Vec<u8>,
     ) -> DeliveredMessage {
@@ -338,7 +338,7 @@ impl DeliveredMessage {
             subject,
             subscription_id,
             reply_to,
-            payload_size: payload.len() as u64,
+            payload_size: payload.len(),
             payload,
         }
     }
@@ -405,7 +405,7 @@ impl FromStr for DeliveredMessage {
 pub struct SubscribeMessage {
     pub subject: String,
     pub queue_group: Option<String>,
-    pub subscription_id: u64,
+    pub subscription_id: usize,
 }
 
 impl SubscribeMessage {
@@ -413,7 +413,7 @@ impl SubscribeMessage {
     pub fn new(
         subject: String,
         queue_group: Option<String>,
-        subscription_id: u64,
+        subscription_id: usize,
     ) -> SubscribeMessage {
         SubscribeMessage {
             subject,
@@ -506,7 +506,7 @@ impl FromStr for UnsubscribeMessage {
 pub struct PublishMessage {
     pub subject: String,
     pub reply_to: Option<String>,
-    pub payload_size: u64,
+    pub payload_size: usize,
     pub payload: Vec<u8>,
 }
 
@@ -516,7 +516,7 @@ impl PublishMessage {
         PublishMessage {
             subject,
             reply_to,
-            payload_size: payload.len() as u64,
+            payload_size: payload.len(),
             payload,
         }
     }
