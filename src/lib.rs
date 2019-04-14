@@ -632,7 +632,7 @@ mod tests {
 
     #[test]
     fn unsub_roundtrip() {
-        let msg = "UNSUB 21 40";
+        let msg = "UNSUB 21 40\r\n";
         let unsub = UnsubscribeMessage::from_str(msg).unwrap();
         assert_eq!(unsub.subscription_id, 21);
         assert_eq!(unsub.max_messages, Some(40));
