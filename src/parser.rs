@@ -34,8 +34,8 @@ pub struct SubHeader {
 // UNSUB <sid> [max_msgs]
 #[derive(Debug)]
 pub struct UnsubHeader {
-    pub sid: u64,
-    pub max_messages: Option<u64>,
+    pub sid: usize,
+    pub max_messages: Option<usize>,
 }
 
 // -ERR <error message>
@@ -149,7 +149,7 @@ named!(unsub_header<CompleteStr, UnsubHeader>,
         opt!(is_a!(" \t"))              >>
         max_messages: opt!(parse_u64)   >>
 
-        ( UnsubHeader { sid, max_messages })
+        ( UnsubHeader { sid: sid as usize, max_messages: max_messages.map(|m| m as usize) })
     )
 );
 pub fn parse_unsub_header(header: &str) -> Option<UnsubHeader> {

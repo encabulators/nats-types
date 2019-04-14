@@ -457,13 +457,13 @@ impl FromStr for SubscribeMessage {
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnsubscribeMessage {
-    pub subscription_id: u64,
-    pub max_messages: Option<u64>,
+    pub subscription_id: usize,
+    pub max_messages: Option<usize>,
 }
 
 impl UnsubscribeMessage {
     /// Constructor to create a new unsub message
-    pub fn new(subscription_id: u64, max_messages: Option<u64>) -> UnsubscribeMessage {
+    pub fn new(subscription_id: usize, max_messages: Option<usize>) -> UnsubscribeMessage {
         UnsubscribeMessage {
             subscription_id,
             max_messages,
@@ -474,8 +474,8 @@ impl UnsubscribeMessage {
 impl Display for UnsubscribeMessage {
     fn fmt(&self, f: &mut Formatter) -> Result<(), ::std::fmt::Error> {
         match self.max_messages {
-            None => write!(f, "UNSUB {}", self.subscription_id),
-            Some(n) => write!(f, "UNSUB {} {}", self.subscription_id, n),
+            None => write!(f, "UNSUB {}\r\n", self.subscription_id),
+            Some(n) => write!(f, "UNSUB {} {}\r\n", self.subscription_id, n),
         }
     }
 }
