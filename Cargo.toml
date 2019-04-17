@@ -1,6 +1,6 @@
 [package]
 name = "nats-types"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["Kevin Hoffman <alothien@gmail.com>"]
 description = "Enumerations and types for representing NATS protocol messages"
 license = "Apache-2.0"
