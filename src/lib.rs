@@ -55,6 +55,8 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::str::FromStr;
 
+pub use parser::parse_msg_header; 
+
 /// An enum whose variants are all of the available protocol messages as defined by the
 /// NATS protocol documentation.
 #[derive(Debug, Clone, PartialEq)]
