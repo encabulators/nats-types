@@ -53,6 +53,7 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::io::Write;
 use std::str::FromStr;
 
 pub use parser::parse_msg_header; 
@@ -423,6 +424,23 @@ impl SubscribeMessage {
             subscription_id,
         }
     }
+
+    /// Efficient single-allocation conversion into a byte vector suitable for network transmission
+    pub fn as_vec(
+        subject: &str,
+        queue_group: Option<&str>,
+        subscription_id: usize,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let mut buffer = Vec::with_capacity(subject.len() + queue_group.map_or(0, |g| g.len() + 1));
+
+        write!(buffer, "SUB {}", subject)?;
+        if let Some(qg) = queue_group {
+            write!(buffer, " {}", qg)?;
+        }
+        write!(buffer, " {}\r\n", subscription_id)?;
+
+        Ok(buffer)
+    }
 }
 
 impl Display for SubscribeMessage {
@@ -470,6 +488,20 @@ impl UnsubscribeMessage {
             subscription_id,
             max_messages,
         }
+    }
+
+    /// Efficient single-allocation conversion to a byte vector suitable for network transmission
+    pub fn as_vec(
+        subscription_id: usize,
+        max_messages: Option<usize>,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let mut buffer = Vec::with_capacity(16);
+        write!(buffer, "UNSUB {}", subscription_id)?;
+        if let Some(m) = max_messages {
+            write!(buffer, " {}", m)?;
+        }
+        write!(buffer, "\r\n")?;
+        Ok(buffer)
     }
 }
 
@@ -521,6 +553,27 @@ impl PublishMessage {
             payload_size: payload.len(),
             payload,
         }
+    }
+
+    /// Single-allocation conversion from source data to a byte vector suitable for transmission
+    pub fn as_vec(
+        subject: &str,
+        reply_to: Option<&str>,
+        payload: &[u8],
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        // don't need exact capacity, can get close
+        let capacity = 64 + payload.len();
+        let mut buffer = Vec::with_capacity(capacity);
+        write!(buffer, "PUB ")?;
+        write!(buffer, "{}", subject)?;
+        if let Some(rt) = reply_to {
+            write!(buffer, " {}", rt)?;
+        }
+        write!(buffer, " {}", payload.len())?; // does not allocate
+        write!(buffer, "\r\n")?;
+        buffer.extend_from_slice(payload);
+        write!(buffer, "\r\n")?;
+        Ok(buffer)
     }
 }
 
@@ -741,5 +794,32 @@ mod tests {
         let pub2 = ProtocolMessage::from_str(&out).unwrap();
         assert_eq!(publish, pub2);
         assert_eq!(out, "PUB workdispatch 11\r\nHello World\r\n");
+    }
+
+    #[test]
+    fn pubmessage_bytes_roundtrip() {
+        let vec = PublishMessage::as_vec("workdispatch", None, b"Hello World").unwrap();
+        let outstring = String::from_utf8(vec).unwrap();
+        assert_eq!(
+            outstring,
+            format!(
+                "PUB workdispatch {}\r\nHello World\r\n",
+                b"Hello World".len()
+            )
+        );
+    }
+
+    #[test]
+    fn submessage_bytes_roundtrip() {
+        let vec = SubscribeMessage::as_vec("workdispatch", Some("myservice"), 99).unwrap();
+        let outstring = String::from_utf8(vec).unwrap();
+        assert_eq!(outstring, format!("SUB workdispatch myservice 99\r\n"));
+    }
+
+    #[test]
+    fn unsubmessage_bytes_roundtrip() {
+        let vec = UnsubscribeMessage::as_vec(84, Some(1)).unwrap();
+        let outstring = String::from_utf8(vec).unwrap();
+        assert_eq!(outstring, format!("UNSUB 84 1\r\n"));
     }
 }
